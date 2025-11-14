@@ -1,0 +1,46 @@
+﻿using E_Commerce_App.DTOs.Auth;
+using E_Commerce_App.Models;
+using E_Commerce_App.Services.Interface;
+using Microsoft.AspNetCore.Identity.Data;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+
+// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+
+namespace E_Commerce_App.Controller
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AuthController : ControllerBase
+    {
+        private readonly IAuthService _authService;
+
+        public AuthController(IAuthService authService)
+        {
+            _authService = authService;
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(LoginRequestDTO loginDto)
+        {
+            var result = await _authService.LoginAsync(loginDto);
+            if (result == null)
+                return Unauthorized("Invalid username or password");
+
+            return Ok(result);
+        }
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(LoginRequestDTO loginDto)
+        {
+            var result = await _authService.RegisterAsync(loginDto);
+            if (result == null)
+                return Unauthorized("User already exists or registration failed");
+
+            return Ok(result);
+        }
+    }
+}

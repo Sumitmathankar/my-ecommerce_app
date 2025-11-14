@@ -1,0 +1,10 @@
+﻿using E_Commerce_App.Models;
+
+namespace E_Commerce_App.Repositories.Interfaces
+{
+    public interface IAuthRepository
+    {
+        Task<User> GetUserByUsernameAsync(string username);
+        Task AddUserAsync(User user); // Add method for user registration
+    }
+}

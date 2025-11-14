@@ -1,0 +1,10 @@
+﻿using E_Commerce_App.DTOs.Auth;
+
+namespace E_Commerce_App.Services.Interface
+{
+    public interface IAuthService
+    {
+        Task<LoginResponseDTO> LoginAsync(LoginRequestDTO loginDto);
+        Task<LoginResponseDTO> RegisterAsync(LoginRequestDTO loginDto); // Added registration method
+    }
+}

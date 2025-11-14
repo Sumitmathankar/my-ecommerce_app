@@ -1,0 +1,92 @@
+﻿using E_Commerce_App.DTOs.Auth;
+using E_Commerce_App.Repositories.Interfaces;
+using E_Commerce_App.Services.Interface;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+
+namespace E_Commerce_App.Services.Implmentation
+{
+    public class AuthService : IAuthService
+    {
+        private readonly IAuthRepository _authRepository;
+        private readonly IConfiguration _config;
+
+        public AuthService(IAuthRepository authRepository, IConfiguration config)
+        {
+            _authRepository = authRepository;
+            _config = config;
+        }
+
+        public async Task<LoginResponseDTO> LoginAsync(LoginRequestDTO loginDto)
+        {
+            var user = await _authRepository.GetUserByUsernameAsync(loginDto.Email);
+
+            if (user == null || user.PasswordHash != loginDto.Password) // ⚠️ Use hashed password in production
+                return null;
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role)
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                _config["Jwt:Issuer"],
+                _config["Jwt:Audience"],
+                claims,
+                expires: DateTime.Now.AddHours(2),
+                signingCredentials: creds
+            );
+
+            return new LoginResponseDTO
+            {
+                Username = user.Email,
+                Token = new JwtSecurityTokenHandler().WriteToken(token)
+            };
+        }
+
+        public async Task<LoginResponseDTO> RegisterAsync(LoginRequestDTO loginDto)
+        {
+            // Example registration logic
+            var userExists = await _authRepository.GetUserByUsernameAsync(loginDto.Email);
+            if (userExists != null)
+                return null; // User already exists
+
+            // Create user (simple, not secure for production)
+            var newUser = new Models.User
+            {
+                Email = loginDto.Email,
+                PasswordHash = loginDto.Password, // ⚠️ Hash password in production
+                Role = "User"
+            };
+            await _authRepository.AddUserAsync(newUser);
+
+            // Generate token (reuse login logic)
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Email, newUser.Email),
+                new Claim(ClaimTypes.Role, newUser.Role)
+            };
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken(
+                _config["Jwt:Issuer"],
+                _config["Jwt:Audience"],
+                claims,
+                expires: DateTime.Now.AddHours(2),
+                signingCredentials: creds
+            );
+            return new LoginResponseDTO
+            {
+                Username = newUser.Email,
+                Token = new JwtSecurityTokenHandler().WriteToken(token)
+            };
+        }
+    }
+}
+
